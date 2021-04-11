@@ -27,7 +27,7 @@ class PMF():
         self.train_rmse_list=[]
         self.test_rmse_list=[]
 
-
+# 初始化R，和相关参数设置
     def createR(self):
         max_num=np.amax(self.data,axis=0)
         self.user_num=max_num[0]+1
@@ -40,6 +40,7 @@ class PMF():
             r=self.train_data[int(item)][2]
             self.R[i][j]=r
 
+# R,U使用随机梯度下降进行对R进行矩阵分解
     def train(self):
         train_num=self.train_data.shape[0]
         test_num=self.test_data.shape[0]
@@ -49,6 +50,7 @@ class PMF():
             train_order=np.arange(train_num)
             np.random.shuffle(train_order)
             for batch in range(self.batch_num):
+                # 获取要使用随机梯度下降进行训练的序列号
                 train_batch_order=train_order[batch*self.batch_size:(batch+1)*self.batch_size]
                 train_user_id= np.array(self.train_data[train_order[train_batch_order], 0], dtype='int32')
                 train_movie_id= np.array(self.train_data[train_order[train_batch_order], 1], dtype='int32')
@@ -58,6 +60,7 @@ class PMF():
                 user_batch_grad=np.multiply(Err[:,np.newaxis],self.V[train_movie_id,:])+self.lambda_u*self.U[train_user_id,:]
                 movie_batch_grad = np.multiply(Err[:, np.newaxis], self.U[train_user_id, :]) + self.lambda_v * self.V[train_movie_id,:]
 
+                # 计算梯度
                 for index in range(self.batch_size):
                     self.U_grad[train_user_id[index],:]+=user_batch_grad[index,:]
                     self.V_grad[train_movie_id[index],:]+=movie_batch_grad[index,:]
@@ -65,6 +68,7 @@ class PMF():
                 self.U=self.U-self.learning_rate*self.U_grad/self.batch_size
                 self.V=self.V-self.learning_rate*self.V_grad/self.batch_size
 
+                # 计算损失函数，计算训练和测试的RMSE
                 if batch==self.batch_num-1:
                     loss=np.linalg.norm(Err)**2+0.5 * self.lambda_u* np.linalg.norm(self.U) ** 2 + 0.5 * self.lambda_v* np.linalg.norm(self.V) ** 2
                     totalloss=loss/train_num
@@ -80,7 +84,7 @@ class PMF():
                     self.test_rmse_list.append(np.linalg.norm(testErr)/np.sqrt(test_num))
 
                     print("Training Loss:",totalloss,"\t","Training RMSE:",self.train_rmse_list[-1],"\t","Test RMSE:",self.test_rmse_list[-1])
-
+    # 画出函数曲线
     def plt_PMF_result(self):
         plt.plot(range(self.max_epoch), self.train_rmse_list, marker='o', label='Training Data')
         plt.plot(range(self.max_epoch), self.test_rmse_list, marker='v', label='Test Data')
